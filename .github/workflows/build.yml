@@ -11,11 +11,12 @@ jobs:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false  # Don't cancel other platform builds if one fails
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Build C Library
       run: |
@@ -23,7 +24,7 @@ jobs:
         cmake --build core/build --config Release
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
         
@@ -41,9 +42,9 @@ jobs:
         python -c "import src.pqc_sdk as pqc; p, s = pqc.generate_keypair(); ct = pqc.encrypt_bit(1, p); res = pqc.decrypt_bit(ct, s); print(f'Decrypted: {res}'); assert res == 1"
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
 
     - name: Test Node Wrapper
       shell: bash
@@ -57,11 +58,10 @@ jobs:
         fi
         cd wrappers/js
         npm install
-        # Note: ffi-napi might need build tools on some platforms
         node -e "const pqc = require('./index'); const {pub, sec} = pqc.generateKeypair(); const ct = pqc.encryptBit(1, pub); const res = pqc.decryptBit(ct, sec); console.log('Decrypted:', res); if(res !== 1) process.exit(1)"
 
     - name: Set up Java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '11'
@@ -95,6 +95,5 @@ jobs:
           cp core/build/libpqc.so wrappers/php/
         fi
         cd wrappers/php
-        # Create a simple test script
         echo "<?php require 'PqcClient.php'; \$client = new Pqc\PqcClient('libpqc.' . (PHP_OS_FAMILY === 'Darwin' ? 'dylib' : 'so')); \$kp = \$client->generateKeyPair(); \$ct = \$client->encryptBit(1, \$kp['pub']); \$res = \$client->decryptBit(\$ct, \$kp['sec']); echo 'Decrypted: ' . \$res . PHP_EOL; if(\$res !== 1) exit(1);" > test.php
         php -d ffi.enable=1 test.php
