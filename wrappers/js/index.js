@@ -20,41 +20,36 @@ for (const p of searchPaths) {
         pqcLib = koffi.load(p);
         console.log(`Successfully loaded PQC library from ${p}`);
         break;
-    } catch (e) {
-        // Continue searching
-    }
+    } catch (e) {}
 }
 
 if (!pqcLib) {
-    console.error("Failed to load PQC library from any search path.");
+    throw new Error("Failed to load PQC library from any search path.");
 }
 
-// Define functions if library loaded
-let generate_keypair, encrypt_bit, decrypt_bit;
-if (pqcLib) {
-    generate_keypair = pqcLib.func('void generate_keypair(int *out, int *out)');
-    encrypt_bit = pqcLib.func('void encrypt_bit(int, const int *in, int *out)');
-    decrypt_bit = pqcLib.func('int decrypt_bit(const int *in, const int *in)');
-}
+// Use standard C-style pointer notation which koffi handles well with TypedArrays
+const generate_keypair = pqcLib.func('void generate_keypair(int *pub_key, int *sec_key)');
+const encrypt_bit = pqcLib.func('void encrypt_bit(int bit, const int *pub_key, int *ct)');
+const decrypt_bit = pqcLib.func('int decrypt_bit(const int *ct, const int *sec_key)');
 
 function generateKeypair() {
-    if (!pqcLib) throw new Error("Library not loaded");
-    let pub_key = new Array(20).fill(0);
-    let sec_key = new Array(4).fill(0);
-    generate_keypair(pub_key, sec_key);
-    return { pub: pub_key, sec: sec_key };
+    const pub = new Int32Array(20);
+    const sec = new Int32Array(4);
+    generate_keypair(pub, sec);
+    return { pub: Array.from(pub), sec: Array.from(sec) };
 }
 
 function encryptBit(bit, pub) {
-    if (!pqcLib) throw new Error("Library not loaded");
-    let ct = new Array(5).fill(0);
-    encrypt_bit(bit, pub, ct);
-    return ct;
+    const pub_arr = new Int32Array(pub);
+    const ct = new Int32Array(5);
+    encrypt_bit(bit, pub_arr, ct);
+    return Array.from(ct);
 }
 
 function decryptBit(ct, sec) {
-    if (!pqcLib) throw new Error("Library not loaded");
-    return decrypt_bit(ct, sec);
+    const ct_arr = new Int32Array(ct);
+    const sec_arr = new Int32Array(sec);
+    return decrypt_bit(ct_arr, sec_arr);
 }
 
 module.exports = { generateKeypair, encryptBit, decryptBit };
