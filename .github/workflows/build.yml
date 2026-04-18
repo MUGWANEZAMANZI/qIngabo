@@ -79,11 +79,12 @@ jobs:
       shell: bash
       run: |
         if [ -f "core/build/Release/pqc.dll" ]; then
-          LIB_PATH="../../core/build/Release"
+          LIB_PATH="$(pwd)/core/build/Release"
         else
-          LIB_PATH="../../core/build"
+          LIB_PATH="$(pwd)/core/build"
         fi
         cd wrappers/java
+        # On Windows, convert to backslashes for JNA if necessary, but absolute path is usually enough
         mvn clean compile
         mvn exec:java -Dexec.mainClass="com.pqc.QuantumSafeSDK" -Djna.library.path="$LIB_PATH"
 
@@ -99,12 +100,12 @@ jobs:
       shell: bash
       run: |
         if [ -f "core/build/libpqc.dylib" ]; then
-          cp core/build/libpqc.dylib wrappers/php/
+          LIB_FILE="$(pwd)/core/build/libpqc.dylib"
         else
-          cp core/build/libpqc.so wrappers/php/
+          LIB_FILE="$(pwd)/core/build/libpqc.so"
         fi
         cd wrappers/php
-        echo "<?php require 'PqcClient.php'; \$client = new Pqc\PqcClient('libpqc.' . (PHP_OS_FAMILY === 'Darwin' ? 'dylib' : 'so')); \$kp = \$client->generateKeyPair(); \$ct = \$client->encryptBit(1, \$kp['pub']); \$res = \$client->decryptBit(\$ct, \$kp['sec']); echo 'Decrypted: ' . \$res . PHP_EOL; if(\$res !== 1) exit(1);" > test.php
+        echo "<?php require 'PqcClient.php'; \$client = new Pqc\PqcClient('$LIB_FILE'); \$kp = \$client->generateKeyPair(); \$ct = \$client->encryptBit(1, \$kp['pub']); \$res = \$client->decryptBit(\$ct, \$kp['sec']); echo 'Decrypted: ' . \$res . PHP_EOL; if(\$res !== 1) exit(1);" > test.php
         php -d ffi.enable=1 test.php
 
     - name: Upload Build Artifacts
