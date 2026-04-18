@@ -28,10 +28,9 @@ void generate_keypair(int* pub_key, int* sec_key) {
     
     // Generate A
     for(int i=0; i<16; i++) A[i] = rand() % PQC_Q;
-    // Generate S
-    for(int i=0; i<4; i++) S[i] = rand() % PQC_Q;
-    // Generate E (small error: -1, 0, or 1)
-    for(int i=0; i<4; i++) E[i] = (rand() % 3) - 1;
+    // S and E must be small vectors for decryption to work
+    for(int i=0; i<4; i++) S[i] = (rand() % 3) - 1; 
+    for(int i=0; i<4; i++) E[i] = (rand() % 3) - 1; 
     
     int AS[4];
     multiply_matrices(A, 4, 4, S, 1, AS);
