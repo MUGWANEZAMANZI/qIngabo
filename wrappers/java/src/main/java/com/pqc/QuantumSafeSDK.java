@@ -35,9 +35,7 @@ public class QuantumSafeSDK {
     }
 
     public static void main(String[] args) {
-        // Set up JNA path to find the library if not in system path
-        System.setProperty("jna.library.path", "../../core/build");
-
+        // Use property passed from command line or environment
         KeyPair kp = generateKeyPair();
         int[] ciphertext = encryptBit(1, kp.publicKey);
         int decrypted = decryptBit(ciphertext, kp.secretKey);
