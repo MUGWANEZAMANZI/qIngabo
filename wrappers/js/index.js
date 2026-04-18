@@ -32,9 +32,9 @@ if (!pqcLib) {
 // Define functions if library loaded
 let generate_keypair, encrypt_bit, decrypt_bit;
 if (pqcLib) {
-    generate_keypair = pqcLib.func('void generate_keypair(int *out pub_key, int *out sec_key)');
-    encrypt_bit = pqcLib.func('void encrypt_bit(int bit, const int *in pub_key, int *out ct)');
-    decrypt_bit = pqcLib.func('int decrypt_bit(const int *in ct, const int *in sec_key)');
+    generate_keypair = pqcLib.func('void generate_keypair(int *out, int *out)');
+    encrypt_bit = pqcLib.func('void encrypt_bit(int, const int *in, int *out)');
+    decrypt_bit = pqcLib.func('int decrypt_bit(const int *in, const int *in)');
 }
 
 function generateKeypair() {

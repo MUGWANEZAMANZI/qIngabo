@@ -52,8 +52,9 @@ void encrypt_bit(int bit, const int* pub_key, int* ct) {
     const int* A = pub_key;
     const int* P = pub_key + 16;
     
+    // R must be a small error vector for decryption to work
     int R[4];
-    for(int i=0; i<4; i++) R[i] = rand() % PQC_Q;
+    for(int i=0; i<4; i++) R[i] = (rand() % 3) - 1; 
     
     int AT[16];
     for(int i=0; i<4; i++) {
