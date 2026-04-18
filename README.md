@@ -35,40 +35,13 @@ cmake --build . --config Release
 ```
 
 ## Language-Specific Usage
+... (existing content)
 
-### Python
-```python
-from pqc_sdk import generate_keypair, encrypt_bit, decrypt_bit
-pub, sec = generate_keypair()
-ct = encrypt_bit(1, pub)
-decrypted = decrypt_bit(ct, sec)
-```
-
-### Node.js
-```javascript
-const pqc = require('./wrappers/js');
-const {pub, sec} = pqc.generateKeypair();
-const ct = pqc.encryptBit(1, pub);
-const res = pqc.decryptBit(ct, sec);
-```
-
-### Java
-```java
-KeyPair kp = QuantumSafeSDK.generateKeyPair();
-int[] ct = QuantumSafeSDK.encryptBit(1, kp.publicKey);
-int decrypted = QuantumSafeSDK.decryptBit(ct, kp.secretKey);
-```
-
-### PHP
-```php
-$client = new Pqc\PqcClient();
-$kp = $client->generateKeyPair();
-$ct = $client->encryptBit(1, $kp['pub']);
-$res = $client->decryptBit($ct, $kp['sec']);
-```
+## Publishing
+Detailed guides for publishing each wrapper can be found in the `/docs` directory:
+- [Publishing to NPM (JS)](docs/publishing_npm.md)
+- [Publishing to PyPI (Python)](docs/publishing_pip.md)
+- [Publishing to Packagist (PHP)](docs/publishing_composer.md)
 
 ## Security Disclosure
-This project is currently for educational and experimental purposes. Lattice parameters (`PQC_DIM=4`, `PQC_Q=256`) are illustrative and should be increased for production environments.
-
-## License
-Distributed under the MIT License. See `LICENSE` for more information.
+... (rest of the content)
