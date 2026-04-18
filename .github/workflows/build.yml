@@ -1,0 +1,106 @@
+name: Cross-Platform Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up CMake
+      uses: jwlawrence/cmake-action@v1.4.1
+
+    - name: Build C Library
+      run: |
+        cd core
+        mkdir build
+        cd build
+        cmake ..
+        cmake --build . --config Release
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Test Python Wrapper
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cp core/build/Release/pqc.dll wrappers/python/src/pqc_sdk/
+        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+          cp core/build/libpqc.dylib wrappers/python/src/pqc_sdk/
+        else
+          cp core/build/libpqc.so wrappers/python/src/pqc_sdk/
+        fi
+        cd wrappers/python
+        python -c "import src.pqc_sdk as pqc; p, s = pqc.generate_keypair(); ct = pqc.encrypt_bit(1, p); res = pqc.decrypt_bit(ct, s); print(f'Decrypted: {res}'); assert res == 1"
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Test Node Wrapper
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cp core/build/Release/pqc.dll wrappers/js/
+        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+          cp core/build/libpqc.dylib wrappers/js/
+        else
+          cp core/build/libpqc.so wrappers/js/
+        fi
+        cd wrappers/js
+        npm install
+        # Note: ffi-napi might need build tools on some platforms
+        node -e "const pqc = require('./index'); const {pub, sec} = pqc.generateKeypair(); const ct = pqc.encryptBit(1, pub); const res = pqc.decryptBit(ct, sec); console.log('Decrypted:', res); if(res !== 1) process.exit(1)"
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: Test Java Wrapper
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          LIB_DIR="core/build/Release"
+        else
+          LIB_DIR="core/build"
+        fi
+        cd wrappers/java
+        mvn clean compile
+        mvn exec:java -Dexec.mainClass="com.pqc.QuantumSafeSDK" -Djna.library.path="../../$LIB_DIR"
+
+    - name: Set up PHP
+      if: matrix.os != 'windows-latest'
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: ffi
+
+    - name: Test PHP Wrapper
+      if: matrix.os != 'windows-latest'
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" = "macos-latest" ]; then
+          cp core/build/libpqc.dylib wrappers/php/
+        else
+          cp core/build/libpqc.so wrappers/php/
+        fi
+        cd wrappers/php
+        # Create a simple test script
+        echo "<?php require 'PqcClient.php'; \$client = new Pqc\PqcClient('libpqc.' . (PHP_OS_FAMILY === 'Darwin' ? 'dylib' : 'so')); \$kp = \$client->generateKeyPair(); \$ct = \$client->encryptBit(1, \$kp['pub']); \$res = \$client->decryptBit(\$ct, \$kp['sec']); echo 'Decrypted: ' . \$res . PHP_EOL; if(\$res !== 1) exit(1);" > test.php
+        php -d ffi.enable=1 test.php
