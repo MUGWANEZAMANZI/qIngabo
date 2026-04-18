@@ -15,22 +15,26 @@ const searchPaths = [
 ];
 
 let pqcLib = null;
+let lastError = null;
 for (const p of searchPaths) {
     try {
         pqcLib = koffi.load(p);
         console.log(`Successfully loaded PQC library from ${p}`);
         break;
-    } catch (e) {}
+    } catch (e) {
+        lastError = e;
+    }
 }
 
 if (!pqcLib) {
-    throw new Error("Failed to load PQC library from any search path.");
+    console.error("Failed to load PQC library. Last error:", lastError ? lastError.message : "No error message");
+    throw new Error("PQC library not found in search paths: " + JSON.stringify(searchPaths));
 }
 
-// Use standard C-style pointer notation which koffi handles well with TypedArrays
-const generate_keypair = pqcLib.func('void generate_keypair(int *pub_key, int *sec_key)');
-const encrypt_bit = pqcLib.func('void encrypt_bit(int bit, const int *pub_key, int *ct)');
-const decrypt_bit = pqcLib.func('int decrypt_bit(const int *ct, const int *sec_key)');
+// Use most explicit signature for stability
+const generate_keypair = pqcLib.func('generate_keypair', 'void', ['int *', 'int *']);
+const encrypt_bit = pqcLib.func('encrypt_bit', 'void', ['int', 'int *', 'int *']);
+const decrypt_bit = pqcLib.func('decrypt_bit', 'int', ['int *', 'int *']);
 
 function generateKeypair() {
     const pub = new Int32Array(20);

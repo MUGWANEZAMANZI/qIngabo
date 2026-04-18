@@ -4,7 +4,7 @@
   "description": "Quantum Safe Encryption SDK for Node.js",
   "main": "index.js",
   "scripts": {
-    "test": "node -e \"const pqc = require('./index'); const kp = pqc.generateKeypair(); const ct = pqc.encryptBit(1, kp.pub); if(pqc.decryptBit(ct, kp.sec) !== 1) throw new Error('Decryption failed'); console.log('Test passed!');\""
+    "test": "node test.js"
   },
   "dependencies": {
     "koffi": "^2.9.0"
