@@ -106,3 +106,14 @@ jobs:
         cd wrappers/php
         echo "<?php require 'PqcClient.php'; \$client = new Pqc\PqcClient('libpqc.' . (PHP_OS_FAMILY === 'Darwin' ? 'dylib' : 'so')); \$kp = \$client->generateKeyPair(); \$ct = \$client->encryptBit(1, \$kp['pub']); \$res = \$client->decryptBit(\$ct, \$kp['sec']); echo 'Decrypted: ' . \$res . PHP_EOL; if(\$res !== 1) exit(1);" > test.php
         php -d ffi.enable=1 test.php
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: qingabo-libs-${{ matrix.os }}
+        path: |
+          core/build/libpqc.so
+          core/build/libpqc.dylib
+          core/build/Release/pqc.dll
+          core/build/pqc.dll
+        if-no-files-found: ignore
