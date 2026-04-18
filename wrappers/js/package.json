@@ -7,8 +7,6 @@
     "test": "node -e \"const pqc = require('./index'); const kp = pqc.generateKeypair(); const ct = pqc.encryptBit(1, kp.pub); if(pqc.decryptBit(ct, kp.sec) !== 1) throw new Error('Decryption failed'); console.log('Test passed!');\""
   },
   "dependencies": {
-    "ffi-napi": "^4.0.3",
-    "ref-array-di": "^1.2.2",
-    "ref-napi": "^3.0.3"
+    "koffi": "^2.9.0"
   }
 }

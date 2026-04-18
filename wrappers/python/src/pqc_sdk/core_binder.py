@@ -1,29 +1,45 @@
 import ctypes
 import os
 import platform
+import sys
 
 # Load the shared library
 lib_name = "pqc.dll" if platform.system() == "Windows" else "libpqc.so"
 if platform.system() == "Darwin":
     lib_name = "libpqc.dylib"
 
-# Try to find the library in core/build
-lib_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "core", "build", lib_name)
+# Possible search paths
+search_paths = [
+    os.path.join(os.path.dirname(__file__), lib_name), # Bundle with package
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "core", "build", lib_name), # Local dev build
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "core", "build", "Release", lib_name), # MSVC build
+    os.path.abspath(lib_name), # Local working directory
+]
 
-if not os.path.exists(lib_path):
-    # Fallback to local directory
-    lib_path = os.path.abspath(lib_name)
+pqc_lib = None
+for p in search_paths:
+    if os.path.exists(p):
+        try:
+            pqc_lib = ctypes.CDLL(p)
+            print(f"Successfully loaded library from {p}")
+            break
+        except OSError as e:
+            print(f"Failed to load from {p}: {e}")
 
-try:
-    pqc_lib = ctypes.CDLL(lib_path)
-    
+if not pqc_lib:
+    # Try system paths as last resort
+    try:
+        pqc_lib = ctypes.CDLL(lib_name)
+    except OSError:
+        pass
+
+if pqc_lib:
     pqc_lib.generate_keypair.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
     pqc_lib.encrypt_bit.argtypes = [ctypes.c_int, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
     pqc_lib.decrypt_bit.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
     pqc_lib.decrypt_bit.restype = ctypes.c_int
-except OSError:
-    pqc_lib = None
-    print(f"Warning: Could not load {lib_path}")
+else:
+    print(f"Warning: Could not load {lib_name} from any path")
 
 def generate_keypair():
     if not pqc_lib: raise RuntimeError("Library not loaded")

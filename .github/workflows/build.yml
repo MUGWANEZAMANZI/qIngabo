@@ -11,7 +11,7 @@ jobs:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false  # Don't cancel other platform builds if one fails
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
@@ -31,14 +31,20 @@ jobs:
     - name: Test Python Wrapper
       shell: bash
       run: |
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          cp core/build/Release/pqc.dll wrappers/python/src/pqc_sdk/
-        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-          cp core/build/libpqc.dylib wrappers/python/src/pqc_sdk/
-        else
-          cp core/build/libpqc.so wrappers/python/src/pqc_sdk/
+        # Try finding the DLL in common places
+        if [ -f "core/build/Release/pqc.dll" ]; then
+          cp "core/build/Release/pqc.dll" wrappers/python/src/pqc_sdk/
+        elif [ -f "core/build/pqc.dll" ]; then
+          cp "core/build/pqc.dll" wrappers/python/src/pqc_sdk/
+        elif [ -f "core/build/libpqc.so" ]; then
+          cp "core/build/libpqc.so" wrappers/python/src/pqc_sdk/
+        elif [ -f "core/build/libpqc.dylib" ]; then
+          cp "core/build/libpqc.dylib" wrappers/python/src/pqc_sdk/
         fi
+        
         cd wrappers/python
+        # Use PYTHONPATH to ensure local import works
+        export PYTHONPATH=$PYTHONPATH:.
         python -c "import src.pqc_sdk as pqc; p, s = pqc.generate_keypair(); ct = pqc.encrypt_bit(1, p); res = pqc.decrypt_bit(ct, s); print(f'Decrypted: {res}'); assert res == 1"
 
     - name: Set up Node.js
@@ -49,16 +55,19 @@ jobs:
     - name: Test Node Wrapper
       shell: bash
       run: |
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          cp core/build/Release/pqc.dll wrappers/js/
-        elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-          cp core/build/libpqc.dylib wrappers/js/
-        else
-          cp core/build/libpqc.so wrappers/js/
+        if [ -f "core/build/Release/pqc.dll" ]; then
+          cp "core/build/Release/pqc.dll" wrappers/js/
+        elif [ -f "core/build/pqc.dll" ]; then
+          cp "core/build/pqc.dll" wrappers/js/
+        elif [ -f "core/build/libpqc.so" ]; then
+          cp "core/build/libpqc.so" wrappers/js/
+        elif [ -f "core/build/libpqc.dylib" ]; then
+          cp "core/build/libpqc.dylib" wrappers/js/
         fi
+        
         cd wrappers/js
         npm install
-        node -e "const pqc = require('./index'); const {pub, sec} = pqc.generateKeypair(); const ct = pqc.encryptBit(1, pub); const res = pqc.decryptBit(ct, sec); console.log('Decrypted:', res); if(res !== 1) process.exit(1)"
+        npm test
 
     - name: Set up Java
       uses: actions/setup-java@v4
@@ -69,14 +78,14 @@ jobs:
     - name: Test Java Wrapper
       shell: bash
       run: |
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          LIB_DIR="core/build/Release"
+        if [ -f "core/build/Release/pqc.dll" ]; then
+          LIB_PATH="../../core/build/Release"
         else
-          LIB_DIR="core/build"
+          LIB_PATH="../../core/build"
         fi
         cd wrappers/java
         mvn clean compile
-        mvn exec:java -Dexec.mainClass="com.pqc.QuantumSafeSDK" -Djna.library.path="../../$LIB_DIR"
+        mvn exec:java -Dexec.mainClass="com.pqc.QuantumSafeSDK" -Djna.library.path="$LIB_PATH"
 
     - name: Set up PHP
       if: matrix.os != 'windows-latest'
@@ -89,7 +98,7 @@ jobs:
       if: matrix.os != 'windows-latest'
       shell: bash
       run: |
-        if [ "${{ matrix.os }}" = "macos-latest" ]; then
+        if [ -f "core/build/libpqc.dylib" ]; then
           cp core/build/libpqc.dylib wrappers/php/
         else
           cp core/build/libpqc.so wrappers/php/
