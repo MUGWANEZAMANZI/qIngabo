@@ -1,0 +1,25 @@
+# Build artifacts
+**/build/
+**/dist/
+**/bin/
+**/*.so
+**/*.dll
+**/*.dylib
+**/*.exe
+**/*.o
+**/*.obj
+**/*.log
+
+# Language-specific ignores
+node_modules/
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+.DS_Store
+vendor/
+target/
+.classpath
+.project
+.settings/
+*.class

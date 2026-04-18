@@ -19,11 +19,8 @@ jobs:
 
     - name: Build C Library
       run: |
-        cd core
-        mkdir build
-        cd build
-        cmake ..
-        cmake --build . --config Release
+        cmake -S core -B core/build -DCMAKE_BUILD_TYPE=Release
+        cmake --build core/build --config Release
 
     - name: Set up Python
       uses: actions/setup-python@v4
