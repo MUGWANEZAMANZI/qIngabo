@@ -1,0 +1,58 @@
+name: Release and Publish SDKs
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.1
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build C Library (Linux)
+        run: |
+          cmake -S core -B core/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build core/build --config Release
+          
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Prepare and Publish NPM
+        run: |
+          cp core/build/libpqc.so wrappers/js/
+          cd wrappers/js
+          npm install
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build C Library (Linux)
+        run: |
+          cmake -S core -B core/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build core/build --config Release
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Build and Publish Python
+        run: |
+          cp core/build/libpqc.so wrappers/python/src/pqc_sdk/
+          cd wrappers/python
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine upload dist/*
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
